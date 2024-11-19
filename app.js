@@ -1,46 +1,33 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
-const SECRET_KEY = "CLAVE ULTRA SECRETA";
-
-// Aquí importamos los routers
-const peopleRouter = require("./routes/peopleRoute");
-
-
 const app = express();
 const port = 3000;
+const SECRET_KEY = "CLAVE_SECRETA";
+
+// Rutas
+const authRoutes = require("./routes/authRoutes");
+const surveyRoutes = require("./routes/surveyRoutes");
+const responseRoutes = require("./routes/responseRoutes");
 
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("<h1>Bienvenid@ al servidor</h1>");
-});
-
-
-// Auth
-app.post("/login", (req, res) => {
-  const { username, password } = req.body;
-  if (username === "admin" && password === "admin") {
-    const token = jwt.sign({ username }, SECRET_KEY);
-    res.status(200).json({ token });
+// Middleware de autenticación
+app.use("/surveys", (req, res, next) => {
+  const token = req.headers["authorization"];
+  if (token) {
+    jwt.verify(token, SECRET_KEY, (err, decoded) => {
+      if (err) return res.status(403).json({ message: "Token inválido" });
+      req.user = decoded;
+      next();
+    });
   } else {
-    res.status(401).json({ message: "Usuario y/o contraseña incorrecto" });
+    res.status(401).json({ message: "Token necesario" });
   }
 });
 
-// Middleware que autoriza a realizar peticiones a /people
-app.use("/people", (req, res, next) => {
-  try {
-    const decoded = jwt.verify(req.headers["access-token"], SECRET_KEY);
-    console.log(decoded);
-    next();
-  } catch (err) {
-    res.status(401).json({ message: "Usuario no autorizado" });
-  }
-});
-//---
-
-// Asociamos el router de people con la ruta /people
-app.use("/people", peopleRouter);
+app.use("/auth", authRoutes);
+app.use("/surveys", surveyRoutes);
+app.use("/responses", responseRoutes);
 
 app.listen(port, () => {
   console.log(`Servidor corriendo en http://localhost:${port}`);
