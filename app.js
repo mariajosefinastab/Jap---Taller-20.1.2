@@ -1,7 +1,17 @@
 const express = require("express");
+const mariadb = require("mariadb");
 const jwt = require("jsonwebtoken");
 const app = express();
-const port = 3000;
+
+const pool = mariadb.createPool({
+  host: "localhost",
+  user: "root",
+  password: "1234",
+  database: "surveydb",
+  connectionLimit: 5,
+});
+
+const port = 3008;
 const SECRET_KEY = "CLAVE_SECRETA";
 
 // Rutas
